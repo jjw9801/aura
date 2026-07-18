@@ -38,7 +38,6 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "24px";
@@ -46,24 +45,50 @@ export default function ChatPage() {
     }
   }, [input]);
 
-  const handleSend = (text?: string) => {
+  const handleSend = async (text?: string) => {
     const messageText = text || input;
     if (!messageText.trim()) return;
 
     const userMessage: Message = { role: "user", content: messageText };
-    setMessages((prev) => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInput("");
     setIsTyping(true);
 
-    setTimeout(() => {
-      const aiMessage: Message = {
-        role: "assistant",
-        content: `This is a simulated response from ${selectedModel}. In the next step, we'll connect the real API.\n\nYou asked: "${messageText}"\n\nHere's what I would do:\n1. Analyze your request\n2. Process with ${selectedModel}\n3. Return a detailed response\n\nStay tuned for real AI integration!`,
-        model: selectedModel,
-      };
-      setMessages((prev) => [...prev, aiMessage]);
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: newMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          model: selectedModel,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `Error: ${data.error}`, model: selectedModel },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: data.content, model: selectedModel },
+        ]);
+      }
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Failed to connect to AI. Please try again.", model: selectedModel },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -71,6 +96,10 @@ export default function ChatPage() {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleCopy = (content: string) => {
+    navigator.clipboard.writeText(content);
   };
 
   const currentModel = models.find((m) => m.name === selectedModel)!;
@@ -116,7 +145,6 @@ export default function ChatPage() {
               Your AI assistant powered by {selectedModel}. Ask anything — write content, analyze data, translate, or automate tasks.
             </p>
 
-            {/* Suggestions */}
             <div className="grid grid-cols-2 gap-3 max-w-lg w-full">
               {suggestions.map((s, i) => (
                 <motion.button
@@ -146,7 +174,6 @@ export default function ChatPage() {
               className={`flex mb-6 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div className={`flex gap-3 max-w-[80%] ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                {/* Avatar */}
                 <div
                   className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[12px] mt-1 ${
                     msg.role === "user"
@@ -157,7 +184,6 @@ export default function ChatPage() {
                   {msg.role === "user" ? "👤" : currentModel.icon}
                 </div>
 
-                {/* Content */}
                 <div>
                   {msg.role === "assistant" && (
                     <p className="text-[11px] text-[#71717A] mb-1 ml-1">{msg.model || selectedModel}</p>
@@ -173,14 +199,12 @@ export default function ChatPage() {
                   </div>
                   {msg.role === "assistant" && (
                     <div className="flex gap-2 mt-2 ml-1">
-                      {["📋 Copy", "🔄 Regenerate"].map((action) => (
-                        <button
-                          key={action}
-                          className="text-[11px] text-[#71717A] hover:text-[#A1A1AA] transition-colors duration-200"
-                        >
-                          {action}
-                        </button>
-                      ))}
+                      <button
+                        onClick={() => handleCopy(msg.content)}
+                        className="text-[11px] text-[#71717A] hover:text-[#A1A1AA] transition-colors duration-200"
+                      >
+                        📋 Copy
+                      </button>
                     </div>
                   )}
                 </div>
@@ -218,7 +242,6 @@ export default function ChatPage() {
       {/* Input Area */}
       <div className="mt-4">
         <div className="rounded-[24px] border border-[#27272A] bg-[#18181B] p-2 focus-within:border-[#7C3AED]/50 transition-colors duration-200">
-          {/* Textarea */}
           <div className="flex items-end gap-2 px-2">
             <textarea
               ref={textareaRef}
@@ -231,9 +254,7 @@ export default function ChatPage() {
             />
           </div>
 
-          {/* Bottom Row */}
           <div className="flex items-center justify-between px-2 pt-2">
-            {/* Tools */}
             <div className="flex items-center gap-1">
               {[
                 { icon: "📎", label: "Attach" },
@@ -250,14 +271,13 @@ export default function ChatPage() {
               ))}
             </div>
 
-            {/* Send */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleSend()}
-              disabled={!input.trim()}
+              disabled={!input.trim() || isTyping}
               className={`flex items-center gap-2 px-5 py-2 rounded-[18px] text-[13px] font-medium transition-all duration-200 ${
-                input.trim()
+                input.trim() && !isTyping
                   ? "bg-[#7C3AED] hover:bg-[#8B5CF6] text-[#FAFAFA] shadow-[0_10px_40px_rgba(124,58,237,.18)]"
                   : "bg-[#27272A] text-[#71717A] cursor-not-allowed"
               }`}
