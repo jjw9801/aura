@@ -4,32 +4,81 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 
+interface UserSettings {
+  display_name: string;
+  dark_mode: boolean;
+  language: string;
+  notifications_email: boolean;
+  notifications_weekly: boolean;
+  notifications_updates: boolean;
+}
+
+const defaultSettings: UserSettings = {
+  display_name: "",
+  dark_mode: true,
+  language: "en",
+  notifications_email: true,
+  notifications_weekly: false,
+  notifications_updates: true,
+};
+
 export default function SettingsPage() {
-  const [name, setName] = useState("");
+  const [settings, setSettings] = useState<UserSettings>(defaultSettings);
   const [email, setEmail] = useState("");
-  const [darkMode, setDarkMode] = useState(true);
-  const [notifications, setNotifications] = useState(true);
-  const [weeklyReport, setWeeklyReport] = useState(false);
-  const [language, setLanguage] = useState("en");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleteText, setDeleteText] = useState("");
 
-  // Load user data
+  // Load settings from Supabase
   useEffect(() => {
-    const loadUser = async () => {
+    const loadSettings = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setEmail(session.user.email || "");
-        setName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "");
+        const stored = session.user.user_metadata?.app_settings;
+        if (stored) {
+          setSettings({
+            ...defaultSettings,
+            ...stored,
+          });
+        } else {
+          setSettings({
+            ...defaultSettings,
+            display_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "",
+          });
+        }
       }
+      setLoading(false);
     };
-    loadUser();
+    loadSettings();
   }, []);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  // Save settings to Supabase
+  const handleSave = async () => {
+    setSaving(true);
+    const { error } = await supabase.auth.updateUser({
+      data: { app_settings: settings },
+    });
+
+    if (!error) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+
+      // Apply dark mode
+      if (settings.dark_mode) {
+        document.documentElement.classList.remove("light-mode");
+      } else {
+        document.documentElement.classList.add("light-mode");
+      }
+    }
+    setSaving(false);
+  };
+
+  // Update a single setting
+  const updateSetting = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleDeleteAccount = async () => {
@@ -37,6 +86,17 @@ export default function SettingsPage() {
     await supabase.auth.signOut();
     window.location.href = "/";
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <svg className="animate-spin h-5 w-5 text-[#7C3AED]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l2-2.647z"></path>
+        </svg>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -74,11 +134,11 @@ export default function SettingsPage() {
         <h2 className="text-[18px] font-semibold text-[#FAFAFA]">Profile</h2>
 
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#2563EB] flex items-center justify-center text-2xl">
-            {name ? name.charAt(0).toUpperCase() : "👤"}
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#2563EB] flex items-center justify-center text-2xl font-bold text-white">
+            {settings.display_name ? settings.display_name.charAt(0).toUpperCase() : "?"}
           </div>
           <div>
-            <p className="text-[14px] font-medium text-[#FAFAFA]">{name || "User"}</p>
+            <p className="text-[14px] font-medium text-[#FAFAFA]">{settings.display_name || "User"}</p>
             <p className="text-[12px] text-[#71717A]">{email}</p>
           </div>
         </div>
@@ -87,8 +147,8 @@ export default function SettingsPage() {
           <div>
             <label className="text-[14px] text-[#A1A1AA] block mb-1.5">Display Name</label>
             <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={settings.display_name}
+              onChange={(e) => updateSetting("display_name", e.target.value)}
               placeholder="Your name"
               className="w-full bg-[#09090B] border border-[#27272A] rounded-[16px] px-4 py-2.5 text-[14px] text-[#FAFAFA] placeholder-[#71717A] outline-none focus:border-[#7C3AED] transition-colors duration-200"
             />
@@ -100,7 +160,7 @@ export default function SettingsPage() {
               disabled
               className="w-full bg-[#09090B] border border-[#27272A] rounded-[16px] px-4 py-2.5 text-[14px] text-[#71717A] outline-none cursor-not-allowed"
             />
-            <p className="text-[11px] text-[#71717A] mt-1">Email cannot be changed</p>
+            <p className="text-[11px] text-[#71717A] mt-1">Email cannot be changed here</p>
           </div>
         </div>
       </motion.div>
@@ -121,13 +181,13 @@ export default function SettingsPage() {
             <p className="text-[12px] text-[#71717A]">Use dark theme across the app</p>
           </div>
           <button
-            onClick={() => setDarkMode(!darkMode)}
+            onClick={() => updateSetting("dark_mode", !settings.dark_mode)}
             className={`w-12 h-7 rounded-full transition-colors duration-300 relative flex-shrink-0 ${
-              darkMode ? "bg-[#7C3AED]" : "bg-[#27272A]"
+              settings.dark_mode ? "bg-[#7C3AED]" : "bg-[#27272A]"
             }`}
           >
             <motion.div
-              animate={{ x: darkMode ? 22 : 2 }}
+              animate={{ x: settings.dark_mode ? 22 : 2 }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
               className="w-[22px] h-[22px] rounded-full bg-white absolute top-[3px] shadow-sm"
             />
@@ -139,8 +199,8 @@ export default function SettingsPage() {
           <label className="text-[14px] text-[#A1A1AA] block mb-1.5">Language</label>
           <div className="relative">
             <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              value={settings.language}
+              onChange={(e) => updateSetting("language", e.target.value)}
               className="w-full bg-[#09090B] border border-[#27272A] rounded-[16px] px-4 py-2.5 text-[14px] text-[#FAFAFA] outline-none focus:border-[#7C3AED] transition-colors duration-200 appearance-none cursor-pointer pr-10"
             >
               <option value="en">🇺🇸 English</option>
@@ -163,63 +223,45 @@ export default function SettingsPage() {
       >
         <h2 className="text-[18px] font-semibold text-[#FAFAFA]">Notifications</h2>
 
-        {/* Email Notifications */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[14px] text-[#FAFAFA]">Email Notifications</p>
-            <p className="text-[12px] text-[#71717A]">Receive updates about your account</p>
+        {[
+          {
+            key: "notifications_email" as const,
+            label: "Email Notifications",
+            desc: "Receive updates about your account activity",
+            value: settings.notifications_email,
+          },
+          {
+            key: "notifications_weekly" as const,
+            label: "Weekly Report",
+            desc: "Get a summary of your AI usage every Monday",
+            value: settings.notifications_weekly,
+          },
+          {
+            key: "notifications_updates" as const,
+            label: "Product Updates",
+            desc: "News about new features and improvements",
+            value: settings.notifications_updates,
+          },
+        ].map((item) => (
+          <div key={item.key} className="flex items-center justify-between">
+            <div>
+              <p className="text-[14px] text-[#FAFAFA]">{item.label}</p>
+              <p className="text-[12px] text-[#71717A]">{item.desc}</p>
+            </div>
+            <button
+              onClick={() => updateSetting(item.key, !item.value)}
+              className={`w-12 h-7 rounded-full transition-colors duration-300 relative flex-shrink-0 ${
+                item.value ? "bg-[#7C3AED]" : "bg-[#27272A]"
+              }`}
+            >
+              <motion.div
+                animate={{ x: item.value ? 22 : 2 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                className="w-[22px] h-[22px] rounded-full bg-white absolute top-[3px] shadow-sm"
+              />
+            </button>
           </div>
-          <button
-            onClick={() => setNotifications(!notifications)}
-            className={`w-12 h-7 rounded-full transition-colors duration-300 relative flex-shrink-0 ${
-              notifications ? "bg-[#7C3AED]" : "bg-[#27272A]"
-            }`}
-          >
-            <motion.div
-              animate={{ x: notifications ? 22 : 2 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              className="w-[22px] h-[22px] rounded-full bg-white absolute top-[3px] shadow-sm"
-            />
-          </button>
-        </div>
-
-        {/* Weekly Report */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[14px] text-[#FAFAFA]">Weekly Report</p>
-            <p className="text-[12px] text-[#71717A]">Get a summary of your AI usage every Monday</p>
-          </div>
-          <button
-            onClick={() => setWeeklyReport(!weeklyReport)}
-            className={`w-12 h-7 rounded-full transition-colors duration-300 relative flex-shrink-0 ${
-              weeklyReport ? "bg-[#7C3AED]" : "bg-[#27272A]"
-            }`}
-          >
-            <motion.div
-              animate={{ x: weeklyReport ? 22 : 2 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              className="w-[22px] h-[22px] rounded-full bg-white absolute top-[3px] shadow-sm"
-            />
-          </button>
-        </div>
-
-        {/* Marketing */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[14px] text-[#FAFAFA]">Product Updates</p>
-            <p className="text-[12px] text-[#71717A]">News about new features and improvements</p>
-          </div>
-          <button
-            onClick={() => {}}
-            className="w-12 h-7 rounded-full transition-colors duration-300 relative flex-shrink-0 bg-[#7C3AED]"
-          >
-            <motion.div
-              animate={{ x: 22 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              className="w-[22px] h-[22px] rounded-full bg-white absolute top-[3px] shadow-sm"
-            />
-          </button>
-        </div>
+        ))}
       </motion.div>
 
       {/* Danger Zone */}
@@ -230,7 +272,6 @@ export default function SettingsPage() {
         className="p-6 rounded-[24px] border border-[#EF4444]/20 bg-[#18181B]"
       >
         <h2 className="text-[18px] font-semibold text-[#EF4444] mb-4">Danger Zone</h2>
-
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[14px] text-[#FAFAFA]">Delete Account</p>
@@ -266,9 +307,8 @@ export default function SettingsPage() {
             >
               <h3 className="text-[18px] font-semibold text-[#EF4444] mb-2">Delete Account</h3>
               <p className="text-[14px] text-[#A1A1AA] mb-6">
-                This action is permanent and cannot be undone. All your data, chats, files, and workflows will be deleted.
+                This action is permanent. All your data, chats, files, and workflows will be deleted.
               </p>
-
               <p className="text-[14px] text-[#FAFAFA] mb-2">
                 Type <span className="font-bold text-[#EF4444]">DELETE</span> to confirm:
               </p>
@@ -278,7 +318,6 @@ export default function SettingsPage() {
                 placeholder="DELETE"
                 className="w-full bg-[#09090B] border border-[#27272A] rounded-[16px] px-4 py-2.5 text-[14px] text-[#FAFAFA] placeholder-[#71717A] outline-none focus:border-[#EF4444] transition-colors duration-200 mb-4"
               />
-
               <div className="flex gap-3">
                 <button
                   onClick={() => { setShowDelete(false); setDeleteText(""); }}
@@ -316,9 +355,10 @@ export default function SettingsPage() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleSave}
-          className="bg-[#7C3AED] hover:bg-[#8B5CF6] text-[#FAFAFA] px-8 py-2.5 rounded-[18px] text-[14px] font-medium shadow-[0_10px_40px_rgba(124,58,237,.18)] transition-colors duration-200"
+          disabled={saving}
+          className="bg-[#7C3AED] hover:bg-[#8B5CF6] text-[#FAFAFA] px-8 py-2.5 rounded-[18px] text-[14px] font-medium shadow-[0_10px_40px_rgba(124,58,237,.18)] transition-colors duration-200 disabled:opacity-50"
         >
-          Save Changes
+          {saving ? "Saving..." : "Save Changes"}
         </motion.button>
       </motion.div>
     </div>
