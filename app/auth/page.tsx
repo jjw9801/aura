@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { saveLocalSession } from "@/lib/auth";
 import Link from "next/link";
 
 export default function AuthPage() {
@@ -21,12 +22,22 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        saveLocalSession({
+          email: data.user?.email || email,
+          displayName: data.user?.user_metadata?.full_name || email.split("@")[0],
+          settings: data.user?.user_metadata?.app_settings,
+        });
         window.location.href = "/dashboard";
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
+        saveLocalSession({
+          email: data.user?.email || email,
+          displayName: data.user?.user_metadata?.full_name || email.split("@")[0],
+          settings: data.user?.user_metadata?.app_settings,
+        });
         setMessage("Check your email to confirm your account!");
       }
     } catch (err: unknown) {

@@ -1,84 +1,26 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
-
-interface UserSettings {
-  display_name: string;
-  dark_mode: boolean;
-  language: string;
-  notifications_email: boolean;
-  notifications_weekly: boolean;
-  notifications_updates: boolean;
-}
-
-const defaultSettings: UserSettings = {
-  display_name: "",
-  dark_mode: true,
-  language: "en",
-  notifications_email: true,
-  notifications_weekly: false,
-  notifications_updates: true,
-};
+import { useSettings } from "@/components/providers/SettingsProvider";
+import { Language } from "@/lib/i18n";
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<UserSettings>(defaultSettings);
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(true);
+  const { settings, email, updateSetting, saveSettings, t } = useSettings();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleteText, setDeleteText] = useState("");
 
-  // Load settings from Supabase
-  useEffect(() => {
-    const loadSettings = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setEmail(session.user.email || "");
-        const stored = session.user.user_metadata?.app_settings;
-        if (stored) {
-          setSettings({
-            ...defaultSettings,
-            ...stored,
-          });
-        } else {
-          setSettings({
-            ...defaultSettings,
-            display_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "",
-          });
-        }
-      }
-      setLoading(false);
-    };
-    loadSettings();
-  }, []);
-
-  // Save settings to Supabase
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({
-      data: { app_settings: settings },
-    });
-
-    if (!error) {
+    const ok = await saveSettings();
+    if (ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-
-      // Apply dark mode
-      if (settings.dark_mode) {
-        document.documentElement.classList.remove("light-mode");
-      } else {
-        document.documentElement.classList.add("light-mode");
-      }
     }
     setSaving(false);
-  };
-
-  // Update a single setting
-  const updateSetting = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleDeleteAccount = async () => {
@@ -87,39 +29,23 @@ export default function SettingsPage() {
     window.location.href = "/";
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <svg className="animate-spin h-5 w-5 text-[#7C3AED]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l2-2.647z"></path>
-        </svg>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <h1 className="text-[28px] font-bold mb-1">Settings</h1>
-        <p className="text-[#A1A1AA] text-[14px]">Manage your account and preferences.</p>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        <h1 className="text-[28px] font-bold mb-1">{t("settings")}</h1>
+        <p className="text-[#A1A1AA] text-[14px]">{t("manageAccount")}</p>
       </motion.div>
 
-      {/* Success Toast */}
+      {/* Toast */}
       <AnimatePresence>
         {saved && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-6 z-50 flex items-center gap-2 bg-[#22C55E] text-[#FAFAFA] px-5 py-3 rounded-[18px] text-[14px] font-medium shadow-lg"
+            className="fixed top-20 right-6 z-50 flex items-center gap-2 bg-[#22C55E] text-white px-5 py-3 rounded-[18px] text-[14px] font-medium shadow-lg"
           >
-            ✓ Settings saved successfully
+            ✓ {t("settingsSaved")}
           </motion.div>
         )}
       </AnimatePresence>
@@ -131,7 +57,7 @@ export default function SettingsPage() {
         transition={{ delay: 0.1 }}
         className="p-6 rounded-[24px] border border-[#27272A] bg-[#18181B] space-y-5"
       >
-        <h2 className="text-[18px] font-semibold text-[#FAFAFA]">Profile</h2>
+        <h2 className="text-[18px] font-semibold text-[#FAFAFA]">{t("profile")}</h2>
 
         <div className="flex items-center gap-4 mb-4">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#2563EB] flex items-center justify-center text-2xl font-bold text-white">
@@ -145,22 +71,21 @@ export default function SettingsPage() {
 
         <div className="space-y-4">
           <div>
-            <label className="text-[14px] text-[#A1A1AA] block mb-1.5">Display Name</label>
+            <label className="text-[14px] text-[#A1A1AA] block mb-1.5">{t("displayName")}</label>
             <input
               value={settings.display_name}
               onChange={(e) => updateSetting("display_name", e.target.value)}
-              placeholder="Your name"
               className="w-full bg-[#09090B] border border-[#27272A] rounded-[16px] px-4 py-2.5 text-[14px] text-[#FAFAFA] placeholder-[#71717A] outline-none focus:border-[#7C3AED] transition-colors duration-200"
             />
           </div>
           <div>
-            <label className="text-[14px] text-[#A1A1AA] block mb-1.5">Email</label>
+            <label className="text-[14px] text-[#A1A1AA] block mb-1.5">{t("email")}</label>
             <input
               value={email}
               disabled
               className="w-full bg-[#09090B] border border-[#27272A] rounded-[16px] px-4 py-2.5 text-[14px] text-[#71717A] outline-none cursor-not-allowed"
             />
-            <p className="text-[11px] text-[#71717A] mt-1">Email cannot be changed here</p>
+            <p className="text-[11px] text-[#71717A] mt-1">{t("emailCannotChange")}</p>
           </div>
         </div>
       </motion.div>
@@ -172,13 +97,12 @@ export default function SettingsPage() {
         transition={{ delay: 0.2 }}
         className="p-6 rounded-[24px] border border-[#27272A] bg-[#18181B] space-y-6"
       >
-        <h2 className="text-[18px] font-semibold text-[#FAFAFA]">Appearance</h2>
+        <h2 className="text-[18px] font-semibold text-[#FAFAFA]">{t("appearance")}</h2>
 
-        {/* Dark Mode */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[14px] text-[#FAFAFA]">Dark Mode</p>
-            <p className="text-[12px] text-[#71717A]">Use dark theme across the app</p>
+            <p className="text-[14px] text-[#FAFAFA]">{t("darkMode")}</p>
+            <p className="text-[12px] text-[#71717A]">{t("darkModeDesc")}</p>
           </div>
           <button
             onClick={() => updateSetting("dark_mode", !settings.dark_mode)}
@@ -194,13 +118,12 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* Language */}
         <div>
-          <label className="text-[14px] text-[#A1A1AA] block mb-1.5">Language</label>
+          <label className="text-[14px] text-[#A1A1AA] block mb-1.5">{t("language")}</label>
           <div className="relative">
             <select
               value={settings.language}
-              onChange={(e) => updateSetting("language", e.target.value)}
+              onChange={(e) => updateSetting("language", e.target.value as Language)}
               className="w-full bg-[#09090B] border border-[#27272A] rounded-[16px] px-4 py-2.5 text-[14px] text-[#FAFAFA] outline-none focus:border-[#7C3AED] transition-colors duration-200 appearance-none cursor-pointer pr-10"
             >
               <option value="en">🇺🇸 English</option>
@@ -221,27 +144,12 @@ export default function SettingsPage() {
         transition={{ delay: 0.3 }}
         className="p-6 rounded-[24px] border border-[#27272A] bg-[#18181B] space-y-6"
       >
-        <h2 className="text-[18px] font-semibold text-[#FAFAFA]">Notifications</h2>
+        <h2 className="text-[18px] font-semibold text-[#FAFAFA]">{t("notifications")}</h2>
 
         {[
-          {
-            key: "notifications_email" as const,
-            label: "Email Notifications",
-            desc: "Receive updates about your account activity",
-            value: settings.notifications_email,
-          },
-          {
-            key: "notifications_weekly" as const,
-            label: "Weekly Report",
-            desc: "Get a summary of your AI usage every Monday",
-            value: settings.notifications_weekly,
-          },
-          {
-            key: "notifications_updates" as const,
-            label: "Product Updates",
-            desc: "News about new features and improvements",
-            value: settings.notifications_updates,
-          },
+          { key: "notifications_email" as const, label: t("emailNotifications"), desc: t("emailNotificationsDesc") },
+          { key: "notifications_weekly" as const, label: t("weeklyReport"), desc: t("weeklyReportDesc") },
+          { key: "notifications_updates" as const, label: t("productUpdates"), desc: t("productUpdatesDesc") },
         ].map((item) => (
           <div key={item.key} className="flex items-center justify-between">
             <div>
@@ -249,13 +157,13 @@ export default function SettingsPage() {
               <p className="text-[12px] text-[#71717A]">{item.desc}</p>
             </div>
             <button
-              onClick={() => updateSetting(item.key, !item.value)}
+              onClick={() => updateSetting(item.key, !settings[item.key])}
               className={`w-12 h-7 rounded-full transition-colors duration-300 relative flex-shrink-0 ${
-                item.value ? "bg-[#7C3AED]" : "bg-[#27272A]"
+                settings[item.key] ? "bg-[#7C3AED]" : "bg-[#27272A]"
               }`}
             >
               <motion.div
-                animate={{ x: item.value ? 22 : 2 }}
+                animate={{ x: settings[item.key] ? 22 : 2 }}
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 className="w-[22px] h-[22px] rounded-full bg-white absolute top-[3px] shadow-sm"
               />
@@ -271,24 +179,24 @@ export default function SettingsPage() {
         transition={{ delay: 0.4 }}
         className="p-6 rounded-[24px] border border-[#EF4444]/20 bg-[#18181B]"
       >
-        <h2 className="text-[18px] font-semibold text-[#EF4444] mb-4">Danger Zone</h2>
+        <h2 className="text-[18px] font-semibold text-[#EF4444] mb-4">{t("dangerZone")}</h2>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[14px] text-[#FAFAFA]">Delete Account</p>
-            <p className="text-[12px] text-[#71717A]">Permanently delete your account and all data</p>
+            <p className="text-[14px] text-[#FAFAFA]">{t("deleteAccount")}</p>
+            <p className="text-[12px] text-[#71717A]">{t("deleteAccountDesc")}</p>
           </div>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowDelete(true)}
-            className="text-[14px] border border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444] hover:text-[#FAFAFA] px-5 py-2 rounded-[18px] transition-all duration-200"
+            className="text-[14px] border border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444] hover:text-white px-5 py-2 rounded-[18px] transition-all duration-200"
           >
-            Delete
+            {t("delete")}
           </motion.button>
         </div>
       </motion.div>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Modal */}
       <AnimatePresence>
         {showDelete && (
           <motion.div
@@ -305,10 +213,8 @@ export default function SettingsPage() {
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md p-6 rounded-[24px] border border-[#27272A] bg-[#18181B]"
             >
-              <h3 className="text-[18px] font-semibold text-[#EF4444] mb-2">Delete Account</h3>
-              <p className="text-[14px] text-[#A1A1AA] mb-6">
-                This action is permanent. All your data, chats, files, and workflows will be deleted.
-              </p>
+              <h3 className="text-[18px] font-semibold text-[#EF4444] mb-2">{t("deleteAccount")}</h3>
+              <p className="text-[14px] text-[#A1A1AA] mb-6">{t("deleteAccountDesc")}</p>
               <p className="text-[14px] text-[#FAFAFA] mb-2">
                 Type <span className="font-bold text-[#EF4444]">DELETE</span> to confirm:
               </p>
@@ -327,16 +233,15 @@ export default function SettingsPage() {
                 </button>
                 <motion.button
                   whileHover={{ scale: deleteText === "DELETE" ? 1.02 : 1 }}
-                  whileTap={{ scale: deleteText === "DELETE" ? 0.98 : 1 }}
                   onClick={handleDeleteAccount}
                   disabled={deleteText !== "DELETE"}
                   className={`flex-1 py-2.5 rounded-[18px] text-[14px] font-medium transition-all duration-200 ${
                     deleteText === "DELETE"
-                      ? "bg-[#EF4444] text-[#FAFAFA] hover:bg-[#DC2626]"
+                      ? "bg-[#EF4444] text-white hover:bg-[#DC2626]"
                       : "bg-[#27272A] text-[#71717A] cursor-not-allowed"
                   }`}
                 >
-                  Delete Account
+                  {t("delete")}
                 </motion.button>
               </div>
             </motion.div>
@@ -344,21 +249,16 @@ export default function SettingsPage() {
         )}
       </AnimatePresence>
 
-      {/* Save Button */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="flex justify-end pb-8"
-      >
+      {/* Save */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex justify-end pb-8">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleSave}
           disabled={saving}
-          className="bg-[#7C3AED] hover:bg-[#8B5CF6] text-[#FAFAFA] px-8 py-2.5 rounded-[18px] text-[14px] font-medium shadow-[0_10px_40px_rgba(124,58,237,.18)] transition-colors duration-200 disabled:opacity-50"
+          className="bg-[#7C3AED] hover:bg-[#8B5CF6] text-white px-8 py-2.5 rounded-[18px] text-[14px] font-medium shadow-[0_10px_40px_rgba(124,58,237,.18)] transition-colors duration-200 disabled:opacity-50"
         >
-          {saving ? "Saving..." : "Save Changes"}
+          {saving ? t("saving") : t("saveChanges")}
         </motion.button>
       </motion.div>
     </div>

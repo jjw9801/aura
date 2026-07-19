@@ -98,8 +98,12 @@ export default function ChatPage() {
     }
   };
 
-  const handleCopy = (content: string) => {
-    navigator.clipboard.writeText(content);
+  const handleCopy = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+    } catch {
+      // ignore clipboard errors
+    }
   };
 
   const currentModel = models.find((m) => m.name === selectedModel)!;
