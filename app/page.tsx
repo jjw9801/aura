@@ -1,7 +1,11 @@
 import Navbar from "@/components/layout/Navbar";
 import Hero from "@/components/sections/Hero";
 import Features from "@/components/sections/Features";
+import HowItWorks from "@/components/sections/HowItWorks";
+import Testimonials from "@/components/sections/Testimonials";
 import Pricing from "@/components/sections/Pricing";
+import FAQ from "@/components/sections/FAQ";
+import CTA from "@/components/sections/CTA";
 import Footer from "@/components/layout/Footer";
 
 export default function Home() {
@@ -10,10 +14,13 @@ export default function Home() {
       <Navbar />
       <Hero />
       <Features />
+      <HowItWorks />
+      <Testimonials />
       <Pricing />
+      <FAQ />
+      <CTA />
       <Footer />
 
-      {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
