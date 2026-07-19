@@ -58,12 +58,7 @@ export default function Pricing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.12, duration: 0.5 }}
-              whileHover={{
-                y: -8,
-                scale: 1.03,
-                transition: { duration: 0.25 },
-              }}
-              className={`relative p-8 rounded-[24px] border cursor-pointer transition-shadow duration-300 ${
+              className={`relative p-8 rounded-[24px] border transition-shadow duration-300 ${
                 plan.highlight
                   ? "border-[#7C3AED] bg-[#18181B] shadow-[0_10px_40px_rgba(124,58,237,.18)]"
                   : "border-[#27272A] bg-[#18181B]"
@@ -92,18 +87,15 @@ export default function Pricing() {
                 ))}
               </ul>
 
-              <Link href="/auth">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.97 }}
-                  className={`w-full py-3 rounded-[18px] text-[14px] font-medium transition-colors duration-200 ${
-                    plan.highlight
-                      ? "bg-[#7C3AED] hover:bg-[#8B5CF6] text-[#FAFAFA] shadow-[0_10px_40px_rgba(124,58,237,.18)]"
-                      : "border border-[#27272A] hover:border-[#7C3AED] text-[#A1A1AA] hover:text-[#FAFAFA]"
-                  }`}
-                >
-                  {plan.cta}
-                </motion.button>
+              <Link
+                href="/auth"
+                className={`block w-full py-3 rounded-[18px] text-[14px] font-medium text-center transition-colors duration-200 ${
+                  plan.highlight
+                    ? "bg-[#7C3AED] hover:bg-[#8B5CF6] text-[#FAFAFA] shadow-[0_10px_40px_rgba(124,58,237,.18)]"
+                    : "border border-[#27272A] hover:border-[#7C3AED] text-[#A1A1AA] hover:text-[#FAFAFA]"
+                }`}
+              >
+                {plan.cta}
               </Link>
             </motion.div>
           ))}
