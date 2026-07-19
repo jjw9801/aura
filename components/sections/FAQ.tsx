@@ -34,7 +34,7 @@ export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section className="py-24 relative">
+    <section id="faq" className="py-24 relative">
       <div className="max-w-3xl mx-auto px-6">
         {/* Header */}
         <motion.div

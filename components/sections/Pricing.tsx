@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 export default function Pricing() {
   const plans = [
@@ -33,7 +34,6 @@ export default function Pricing() {
   return (
     <section id="pricing" className="py-24 relative">
       <div className="max-w-6xl mx-auto px-6">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -50,7 +50,6 @@ export default function Pricing() {
           </p>
         </motion.div>
 
-        {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {plans.map((plan, i) => (
             <motion.div
@@ -93,17 +92,19 @@ export default function Pricing() {
                 ))}
               </ul>
 
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.97 }}
-                className={`w-full py-3 rounded-[18px] text-[14px] font-medium transition-colors duration-200 ${
-                  plan.highlight
-                    ? "bg-[#7C3AED] hover:bg-[#8B5CF6] text-[#FAFAFA] shadow-[0_10px_40px_rgba(124,58,237,.18)]"
-                    : "border border-[#27272A] hover:border-[#7C3AED] text-[#A1A1AA] hover:text-[#FAFAFA]"
-                }`}
-              >
-                {plan.cta}
-              </motion.button>
+              <Link href="/auth">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.97 }}
+                  className={`w-full py-3 rounded-[18px] text-[14px] font-medium transition-colors duration-200 ${
+                    plan.highlight
+                      ? "bg-[#7C3AED] hover:bg-[#8B5CF6] text-[#FAFAFA] shadow-[0_10px_40px_rgba(124,58,237,.18)]"
+                      : "border border-[#27272A] hover:border-[#7C3AED] text-[#A1A1AA] hover:text-[#FAFAFA]"
+                  }`}
+                >
+                  {plan.cta}
+                </motion.button>
+              </Link>
             </motion.div>
           ))}
         </div>

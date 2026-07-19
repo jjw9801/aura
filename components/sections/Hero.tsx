@@ -1,5 +1,5 @@
 'use client';
-
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { InteractiveRobotSpline } from '@/components/ui/interactive-3d-robot';
 
@@ -71,20 +71,24 @@ export default function Hero() {
             animate="visible"
             className="flex flex-col sm:flex-row gap-4"
           >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              className="bg-[#7C3AED] hover:bg-[#8B5CF6] text-[#FAFAFA] px-8 py-3 rounded-[18px] text-[14px] font-medium transition-colors duration-200 shadow-[0_10px_40px_rgba(124,58,237,.18)]"
-            >
-              Start Free →
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              className="border border-[#27272A] hover:border-[#7C3AED] text-[#A1A1AA] hover:text-[#FAFAFA] px-8 py-3 rounded-[18px] text-[14px] font-medium transition-colors duration-200"
-            >
-              Live Demo
-            </motion.button>
+           <Link href="/auth">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.97 }}
+                className="bg-[#7C3AED] hover:bg-[#8B5CF6] text-[#FAFAFA] px-8 py-3 rounded-[18px] text-[14px] font-medium transition-colors duration-200 shadow-[0_10px_40px_rgba(124,58,237,.18)]"
+              >
+                Start Free →
+              </motion.button>
+            </Link>
+            <Link href="/dashboard">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.97 }}
+                className="border border-[#27272A] hover:border-[#7C3AED] text-[#A1A1AA] hover:text-[#FAFAFA] px-8 py-3 rounded-[18px] text-[14px] font-medium transition-colors duration-200"
+              >
+                Live Demo
+              </motion.button>
+            </Link>
           </motion.div>
 
           {/* Stats */}

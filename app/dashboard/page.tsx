@@ -1,5 +1,5 @@
 'use client';
-
+import Link from "next/link";
 import { motion } from "framer-motion";
 
 const fadeUp = {
@@ -99,12 +99,14 @@ export default function DashboardPage() {
         <h2 className="text-[18px] font-semibold mb-4">Recent Chats</h2>
         <div className="rounded-[24px] border border-[#27272A] bg-[#18181B] overflow-hidden">
           {recentChats.map((chat, i) => (
-            <div
+            <Link
               key={i}
+              href="/dashboard/chat"
               className={`flex items-center justify-between px-6 py-4 hover:bg-[#27272A]/30 transition-colors duration-200 cursor-pointer ${
                 i !== recentChats.length - 1 ? "border-b border-[#27272A]" : ""
               }`}
             >
+            
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-[16px] bg-[#7C3AED]/10 flex items-center justify-center text-lg">
                   💬
@@ -117,7 +119,7 @@ export default function DashboardPage() {
               <span className="text-[12px] text-[#A1A1AA] border border-[#27272A] px-3 py-1 rounded-full">
                 {chat.model}
               </span>
-            </div>
+            </Link>
           ))}
         </div>
       </motion.div>

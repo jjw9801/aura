@@ -7,6 +7,14 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function Navbar() {
   const [open, setOpen] = useState(false);
 
+  const scrollTo = (id: string) => {
+    setOpen(false);
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <motion.nav
       initial={{ y: -20, opacity: 0 }}
@@ -21,9 +29,9 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-8 text-sm text-[#A1A1AA]">
-          <Link href="#features" className="hover:text-[#FAFAFA] transition-colors duration-200">Features</Link>
-          <Link href="#pricing" className="hover:text-[#FAFAFA] transition-colors duration-200">Pricing</Link>
-          <Link href="#" className="hover:text-[#FAFAFA] transition-colors duration-200">Docs</Link>
+          <button onClick={() => scrollTo("features")} className="hover:text-[#FAFAFA] transition-colors duration-200">Features</button>
+          <button onClick={() => scrollTo("pricing")} className="hover:text-[#FAFAFA] transition-colors duration-200">Pricing</button>
+          <button onClick={() => scrollTo("faq")} className="hover:text-[#FAFAFA] transition-colors duration-200">FAQ</button>
         </div>
 
         <div className="hidden md:flex items-center gap-3">
@@ -55,9 +63,9 @@ export default function Navbar() {
             transition={{ duration: 0.3 }}
             className="md:hidden border-t border-[#27272A] bg-[#09090B] px-6 py-4 flex flex-col gap-4 text-sm text-[#A1A1AA] overflow-hidden"
           >
-            <Link href="#features" onClick={() => setOpen(false)}>Features</Link>
-            <Link href="#pricing" onClick={() => setOpen(false)}>Pricing</Link>
-            <Link href="#" onClick={() => setOpen(false)}>Docs</Link>
+            <button onClick={() => scrollTo("features")} className="text-left">Features</button>
+            <button onClick={() => scrollTo("pricing")} className="text-left">Pricing</button>
+            <button onClick={() => scrollTo("faq")} className="text-left">FAQ</button>
             <Link href="/auth" onClick={() => setOpen(false)}>
               <button className="mt-2 bg-[#7C3AED] text-[#FAFAFA] px-4 py-2 rounded-[18px] text-sm w-full">
                 Get Started
